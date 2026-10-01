@@ -139,7 +139,17 @@ bool WindowShouldClose(void)
 
     // NOTE: Optionally, time can be managed, giving control back-to-browser as required,
     // but it seems below line could generate stuttering on some browsers
-    emscripten_sleep(12);
+    //
+    // The sleep is the *synchronous* shape's, and only that shape can afford it:
+    // `emscripten_sleep` needs async support, and a build without it does not
+    // no-op here -- it aborts the module ("Please compile your program with async
+    // support in order to use asynchronous operations like emscripten_sleep").
+    // The comment above says the function is not called from a main-loop
+    // application, but a scene that hands raylib its rendering without knowing
+    // which shape it was built into still calls it every frame, so the check is a
+    // runtime one rather than an #ifdef. Under `emscripten_set_main_loop` the
+    // browser owns the cadence and there is nothing to yield for.
+    if (emscripten_has_asyncify()) emscripten_sleep(12);
 
     return false;
 }
