@@ -1514,11 +1514,16 @@ static void SetupFramebuffer(int width, int height)
         // Required screen size is smaller than display size
         TRACELOG(LOG_INFO, "DISPLAY: Upscaling required: Screen size (%ix%i) smaller than display size (%ix%i)", CORE.Window.screen.width, CORE.Window.screen.height, CORE.Window.display.width, CORE.Window.display.height);
 
-        if ((CORE.Window.screen.width == 0) || (CORE.Window.screen.height == 0))
-        {
-            CORE.Window.screen.width = CORE.Window.display.width;
-            CORE.Window.screen.height = CORE.Window.display.height;
-        }
+        // (Android) The window *is* the panel, so a request smaller than the display
+        // is not a request for a letterboxed window. raylib's border-bar maths below
+        // would otherwise pin the client's 1000x640 desktop window size to a 640px
+        // strip of a 1080px-tall screen, with renderOffset left holding the rest.
+        //
+        // This is the `== 0` case that used to live here, widened: on Android there
+        // is exactly one window and it is the display, which is also what a caller
+        // asking for 0 was asking for.
+        CORE.Window.screen.width = CORE.Window.display.width;
+        CORE.Window.screen.height = CORE.Window.display.height;
 
         // Upscaling to fit display with border-bars
         float displayRatio = (float)CORE.Window.display.width/(float)CORE.Window.display.height;
