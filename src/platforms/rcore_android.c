@@ -1171,7 +1171,49 @@ static void AndroidCommandCallback(struct android_app *app, int32_t cmd)
             //AConfiguration_fromAssetManager(platform.app->config, platform.app->activity->assetManager);
             //print_cur_config(platform.app);
 
-            // Check screen orientation here!
+            // This is where raylib's own TODO said "Check screen orientation here!",
+            // and it is where a phone's rotation lands: the manifest asks for
+            // landscape, but the surface exists in portrait first, so InitPlatform
+            // reads that portrait size and the rotation happens afterwards with
+            // nothing to notice it.
+            //
+            // The framebuffer then keeps the pre-rotation aspect. A 1000x640
+            // request against the 1080x2322 panel this was found on computes
+            // renderOffset.y = 1510, so the scene is a letterboxed strip low on the
+            // screen and its render buffer is the wrong size too.
+            //
+            // On Android the window *is* the screen, so the panel's size is the
+            // answer. Only the size state is touched: re-running
+            // InitGraphicsDevice() here would recreate the EGL surface and
+            // invalidate every shader and texture the scene has loaded.
+            if (platform.app->window != NULL)
+            {
+                int width = ANativeWindow_getWidth(platform.app->window);
+                int height = ANativeWindow_getHeight(platform.app->window);
+
+                if ((width > 0) && (height > 0) &&
+                    ((width != CORE.Window.display.width) || (height != CORE.Window.display.height)))
+                {
+                    EGLint displayFormat = 0;
+                    eglGetConfigAttrib(platform.device, platform.config, EGL_NATIVE_VISUAL_ID, &displayFormat);
+
+                    CORE.Window.display.width = width;
+                    CORE.Window.display.height = height;
+                    CORE.Window.screen.width = width;
+                    CORE.Window.screen.height = height;
+
+                    SetupFramebuffer(CORE.Window.display.width, CORE.Window.display.height);
+
+                    CORE.Window.render.width = CORE.Window.screen.width;
+                    CORE.Window.render.height = CORE.Window.screen.height;
+                    CORE.Window.currentFbo.width = CORE.Window.render.width;
+                    CORE.Window.currentFbo.height = CORE.Window.render.height;
+
+                    ANativeWindow_setBuffersGeometry(platform.app->window, CORE.Window.render.width, CORE.Window.render.height, displayFormat);
+
+                    TRACELOG(LOG_INFO, "DISPLAY: Panel resized to %ix%i", CORE.Window.display.width, CORE.Window.display.height);
+                }
+            }
         } break;
         default: break;
     }
