@@ -175,7 +175,15 @@ bool WindowShouldClose(void)
 
     // Optionally, time to give-control-back-to-browser can be managed here,
     // but it seems below line could generate stuttering on some browsers
-    emscripten_sleep(12);
+    //
+    // The sleep is the *synchronous* shape's: `emscripten_sleep` needs async
+    // support, and a build without it does not no-op here -- it aborts the module
+    // ("Please compile your program with async support in order to use
+    // asynchronous operations like emscripten_sleep"). The comment above already
+    // says this function is not called from a main-loop application, but a scene
+    // that does not know which shape it was built into still calls it every
+    // frame, so the check is a runtime one rather than an #ifdef.
+    if (emscripten_has_asyncify()) emscripten_sleep(12);
 
     return false;
 }
