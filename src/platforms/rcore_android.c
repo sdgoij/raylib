@@ -946,7 +946,13 @@ static int InitGraphicsDevice(void)
     };
 
     const EGLint contextAttribs[] = {
-        EGL_CONTEXT_CLIENT_VERSION, 2,
+        // Match the config chosen just above. On an ES3 build that asks for
+        // EGL_OPENGL_ES3_BIT, and a client version of 2 alongside it yields an
+        // ES 2.0 context: raylib's own #version 300 es shaders happen to be
+        // accepted anyway (this driver is lenient about that), but ES3-only
+        // entry points are not guaranteed -- core VAOs, glVertexAttribDivisor,
+        // glDrawArraysInstanced -- and rlgl's ES3 path calls them.
+        EGL_CONTEXT_CLIENT_VERSION, (rlGetVersion() == RL_OPENGL_ES_30) ? 3 : 2,
         EGL_NONE
     };
 
