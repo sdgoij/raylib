@@ -96,7 +96,13 @@ static const KeyboardKey mapKeycode[KEYCODE_MAP_SIZE] = {
     0,                  // AKEYCODE_SOFT_LEFT
     0,                  // AKEYCODE_SOFT_RIGHT
     0,                  // AKEYCODE_HOME
-    KEY_BACK,           // AKEYCODE_BACK
+    // (Android) The phone's back button *is* the desk's escape. raylib maps it to
+    // its own KEY_BACK and eats the event so the OS never finishes the activity --
+    // but KEY_BACK is not one of the key names the engine exports to the scene, so
+    // the scene cannot read it, and a phone has no escape key. The console, once
+    // open, had no way to close. Reporting back as KEY_ESCAPE reaches the escape
+    // handling the scene already has (`console.js`, `goat.js`).
+    KEY_ESCAPE,         // AKEYCODE_BACK
     0,                  // AKEYCODE_CALL
     0,                  // AKEYCODE_ENDCALL
     KEY_ZERO,           // AKEYCODE_0
